@@ -1,0 +1,32 @@
+// Agama quickstart demo
+// Copyright (c) Gluu Inc.
+
+Flow io.jans.agama.quickstart
+    Basepath ""
+    Timeout 100 seconds
+
+someUsers = ["jack","jill","admin"]
+authnServiceCls = Call java.lang.Class#forName "io.jans.as.server.service.AuthenticationService"
+authnService = Call io.jans.service.cdi.util.CdiUtil#bean authnServiceCls
+
+uiFeedback = {}
+upVerify = Call io.jans.agama.quickstart.UserPermissionVerification#new someUsers
+
+count = Repeat 3 times max
+    result = RRF "login-demo.ftlh" uiFeedback
+    canauth = Call upVerify canAuthenticate result.username
+    When canauth is true
+        Log "@info user % can be authenticated" result.username
+        loginsuccess = Call authnService authenticate result.username result.password
+        When loginsuccess is true
+            authnresult = {success: true, data: {userId: result.username }}
+            Finish authnresult
+        Otherwise
+            uiFeedback.errormsg = "User authentication failed. Try again"
+    Otherwise
+        uiFeedback.errormsg = "User is not allowed to authenticate"
+        Log "@info user % is not authorized to authenticate" result.username
+
+authnresult = {success: false, error: "Max authentication failures attempts reached"}
+Finish authnresult
+
